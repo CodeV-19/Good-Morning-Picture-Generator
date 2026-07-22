@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>早安圖產生器｜一鍵做出長輩最愛的早安圖</title>
+<meta name="description" content="免費線上早安圖產生器，內建花卉、日出、荷花等經典範本，自動加上今日日期，一鍵下載或分享到 LINE。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@500;700;900&family=Ma+Shan+Zheng&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>🌅 早安圖產生器</h1>
+  <p class="subtitle">3 步驟做出長輩最愛分享的早安圖，免安裝、免登入，做好直接下載或傳 LINE</p>
+</header>
+
+<main class="layout">
+  <section class="controls">
+
+    <div class="panel">
+      <h2><span class="step">1</span> 選擇背景</h2>
+      <div class="bg-tabs">
+        <button class="bg-tab active" data-tab="templates" type="button">經典範本</button>
+        <button class="bg-tab" data-tab="upload" type="button">上傳照片</button>
+      </div>
+
+      <div class="bg-panel" id="templatesPanel">
+        <div class="template-grid" id="templateGrid"></div>
+      </div>
+
+      <div class="bg-panel" id="uploadPanel" hidden>
+        <label class="upload-box" for="photoInput">
+          <span>📷 點此選擇照片</span>
+          <input type="file" id="photoInput" accept="image/*">
+        </label>
+        <p class="hint">照片會自動裁切為正方形當背景</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="step">2</span> 祝福文字</h2>
+      <select id="quoteSelect"></select>
+      <textarea id="customText" rows="3" placeholder="或在這裡輸入自己的祝福文字（最多 60 字）" maxlength="60"></textarea>
+    </div>
+
+    <div class="panel">
+      <h2><span class="step">3</span> 文字樣式</h2>
+
+      <div class="field">
+        <label>字體</label>
+        <select id="fontSelect">
+          <option value="'Noto Sans TC', sans-serif">現代黑體</option>
+          <option value="'Noto Serif TC', serif">端正明體</option>
+          <option value="'LXGW WenKai TC', serif" selected>手寫楷書</option>
+          <option value="'Ma Shan Zheng', cursive">書法毛筆</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>文字顏色</label>
+        <div class="swatches" id="colorSwatches"></div>
+      </div>
+
+      <div class="field">
+        <label>文字位置</label>
+        <div class="pos-toggle" id="posToggle">
+          <button type="button" data-pos="top">上</button>
+          <button type="button" data-pos="middle" class="active">中</button>
+          <button type="button" data-pos="bottom">下</button>
+        </div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label><input type="checkbox" id="showDate" checked> 自動加上今日日期與星期</label>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="preview-area">
+    <div class="canvas-wrap">
+      <canvas id="mainCanvas" width="1080" height="1080"></canvas>
+    </div>
+    <div class="actions">
+      <button id="downloadBtn" class="btn btn-primary" type="button">⬇️ 下載圖片</button>
+      <button id="shareBtn" class="btn" type="button">📤 分享圖片</button>
+      <button id="lineBtn" class="btn btn-line" type="button">💬 分享到 LINE</button>
+      <button id="copyLinkBtn" class="btn" type="button">🔗 複製連結</button>
+    </div>
+    <p class="link-hint" id="linkHint"></p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>早安圖產生器 · 圖片皆在您的瀏覽器裡合成，不會上傳到任何伺服器</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/quotes.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
