@@ -19,6 +19,38 @@ body {
   color: var(--text);
 }
 
+.inapp-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff3cd;
+  color: #6b4d00;
+  border-bottom: 1px solid #f0d78c;
+  padding: 12px 40px 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.inapp-banner p {
+  margin: 0 0 4px;
+}
+
+.inapp-banner p:last-child {
+  margin-bottom: 0;
+}
+
+.inapp-banner-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  color: #6b4d00;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
 .site-header {
   text-align: center;
   padding: 28px 16px 18px;

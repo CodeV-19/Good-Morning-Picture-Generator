@@ -274,6 +274,9 @@ function wireControls() {
   });
 
   document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (isInAppBrowser()) {
+      showToast('LINE／FB 內建瀏覽器可能無法下載，請改用右上角「⋯」在瀏覽器中開啟');
+    }
     const link = document.createElement('a');
     link.download = '早安圖.png';
     link.href = canvas.toDataURL('image/png');
@@ -281,6 +284,9 @@ function wireControls() {
   });
 
   document.getElementById('shareBtn').addEventListener('click', () => {
+    if (isInAppBrowser()) {
+      showToast('LINE／FB 內建瀏覽器可能無法分享，請改用右上角「⋯」在瀏覽器中開啟');
+    }
     canvas.toBlob(async (blob) => {
       const file = new File([blob], '早安圖.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -319,6 +325,7 @@ function encodeState() {
   const url = new URL(window.location.href);
   url.search = '';
   url.searchParams.set('s', b64);
+  url.searchParams.set('openExternalBrowser', '1');
   return url.toString();
 }
 
@@ -374,6 +381,20 @@ function updateShareAvailability() {
     : '';
 }
 
+function isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /Line\//i.test(ua) || /FBAN|FBAV|FB_IAB/i.test(ua) || /Instagram/i.test(ua);
+}
+
+function initInAppBanner() {
+  if (!isInAppBrowser()) return;
+  const banner = document.getElementById('inappBanner');
+  banner.hidden = false;
+  document.getElementById('inappBannerClose').addEventListener('click', () => {
+    banner.hidden = true;
+  });
+}
+
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -384,6 +405,7 @@ function showToast(msg) {
 }
 
 async function init() {
+  initInAppBanner();
   buildQuoteSelect();
   buildColorSwatches();
   buildTemplateGrid();
