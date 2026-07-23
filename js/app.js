@@ -168,14 +168,9 @@ function buildTemplateGrid() {
       document.querySelectorAll('.template-card').forEach((c) => c.classList.remove('active'));
       card.classList.add('active');
       render();
-      updateShareAvailability();
     });
     grid.appendChild(card);
   });
-}
-
-function selectTemplateCard(id) {
-  document.querySelectorAll('.template-card').forEach((c) => c.classList.toggle('active', c.dataset.id === id));
 }
 
 function buildQuoteSelect() {
@@ -252,7 +247,6 @@ function wireControls() {
       document.getElementById('uploadPanel').hidden = isTemplates;
       state.mode = isTemplates ? 'template' : (state.photoImg ? 'upload' : 'template');
       render();
-      updateShareAvailability();
     });
   });
 
@@ -266,7 +260,6 @@ function wireControls() {
         state.photoImg = img;
         state.mode = 'upload';
         render();
-        updateShareAvailability();
       };
       img.src = reader.result;
     };
@@ -301,14 +294,30 @@ function wireControls() {
   });
 
   document.getElementById('lineBtn').addEventListener('click', () => {
-    if (state.mode === 'upload') return;
-    const url = encodeState();
-    window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`, '_blank');
+    const homeUrl = buildPlainShareUrl();
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], '早安圖.png', { type: 'image/png' });
+      const shareText = `早安！這是我用早安圖產生器做的 🌅\n也來做一張：${homeUrl}`;
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: '早安圖', text: shareText });
+          return;
+        } catch (err) { return; /* user cancelled */ }
+      }
+      showToast('此瀏覽器不支援直接分享圖片，已為您下載，並開啟 LINE 分享連結');
+      document.getElementById('downloadBtn').click();
+      window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(homeUrl)}`, '_blank');
+    }, 'image/png');
   });
 
-  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
-    if (state.mode === 'upload') return;
-    const url = encodeState();
+  document.getElementById('shareAppBtn').addEventListener('click', async () => {
+    const url = buildPlainShareUrl();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '早安圖產生器', text: '幫你做一張長輩最愛的早安圖！', url });
+        return;
+      } catch (err) { return; /* user cancelled */ }
+    }
     try {
       await navigator.clipboard.writeText(url);
       showToast('已複製連結！');
@@ -318,90 +327,11 @@ function wireControls() {
   });
 }
 
-const FONTS = [
-  "'Noto Sans TC', sans-serif",
-  "'Noto Serif TC', serif",
-  "'LXGW WenKai TC', serif",
-  "'Ma Shan Zheng', cursive",
-];
-
-function flattenQuotes() {
-  return QUOTE_GROUPS.flatMap((g) => g.items);
-}
-
-function encodeState() {
+function buildPlainShareUrl() {
   const url = new URL(window.location.href);
   url.search = '';
-  url.searchParams.set('t', state.templateId);
-  const fontIdx = FONTS.indexOf(state.font);
-  url.searchParams.set('f', fontIdx >= 0 ? fontIdx : 2);
-  const colorIdx = COLORS.indexOf(state.color);
-  url.searchParams.set('c', colorIdx >= 0 ? colorIdx : 0);
-  url.searchParams.set('p', state.position[0]);
-  url.searchParams.set('d', state.showDate ? '1' : '0');
-
-  const text = currentText();
-  const quoteIdx = flattenQuotes().indexOf(text);
-  if (quoteIdx >= 0 && !state.customText) {
-    url.searchParams.set('qi', quoteIdx);
-  } else {
-    url.searchParams.set('qt', text);
-  }
   url.searchParams.set('openExternalBrowser', '1');
   return url.toString();
-}
-
-function decodeStateFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has('t')) return null;
-  const positionMap = { t: 'top', m: 'middle', b: 'bottom' };
-  return {
-    t: params.get('t'),
-    f: FONTS[Number(params.get('f'))] || FONTS[2],
-    c: COLORS[Number(params.get('c'))] || COLORS[0],
-    p: positionMap[params.get('p')] || 'middle',
-    d: params.get('d') === '1',
-    qi: params.has('qi') ? Number(params.get('qi')) : null,
-    qt: params.get('qt') || '',
-  };
-}
-
-function applySharedState(shared) {
-  if (TEMPLATES.some((t) => t.id === shared.t)) state.templateId = shared.t;
-  state.mode = 'template';
-
-  const presetText = shared.qi !== null ? flattenQuotes()[shared.qi] : undefined;
-  if (presetText !== undefined) {
-    state.quote = presetText;
-    state.customText = '';
-    document.getElementById('quoteSelect').value = presetText;
-  } else if (shared.qt) {
-    state.customText = shared.qt;
-    document.getElementById('customText').value = shared.qt;
-  }
-
-  state.font = shared.f;
-  document.getElementById('fontSelect').value = shared.f;
-
-  state.color = shared.c;
-  const colorIdx = COLORS.indexOf(shared.c);
-  document.querySelectorAll('.swatch').forEach((s, i) => s.classList.toggle('active', i === colorIdx));
-
-  state.position = shared.p;
-  document.querySelectorAll('#posToggle button').forEach((b) => b.classList.toggle('active', b.dataset.pos === shared.p));
-
-  state.showDate = shared.d;
-  document.getElementById('showDate').checked = state.showDate;
-  selectTemplateCard(state.templateId);
-}
-
-function updateShareAvailability() {
-  const disabled = state.mode === 'upload';
-  document.getElementById('lineBtn').disabled = disabled;
-  document.getElementById('copyLinkBtn').disabled = disabled;
-  document.getElementById('linkHint').textContent = disabled
-    ? '上傳照片背景暫不支援分享連結，請改用「分享圖片」或「下載圖片」'
-    : '';
 }
 
 function isInAppBrowser() {
@@ -443,10 +373,6 @@ async function init() {
     ]);
   } catch (err) { /* fall back to system font if webfont fails */ }
 
-  const shared = decodeStateFromURL();
-  if (shared) applySharedState(shared);
-
-  updateShareAvailability();
   render();
 }
 
