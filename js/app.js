@@ -99,6 +99,26 @@ function drawDateStamp() {
   ctx.restore();
 }
 
+function drawWatermark() {
+  const label = 'goodmorning.onlineqrcode.app';
+  ctx.font = "600 22px 'Noto Sans TC', sans-serif";
+  const textW = ctx.measureText(label).width;
+  const padX = 16;
+  const boxW = textW + padX * 2;
+  const boxH = 36;
+  const x = W / 2 - boxW / 2;
+  const y = H - boxH - 22;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  roundRect(ctx, x, y, boxW, boxH, boxH / 2);
+  ctx.fill();
+  ctx.fillStyle = '#3a2e2a';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, W / 2, y + boxH / 2 + 1);
+  ctx.restore();
+}
+
 function currentText() {
   return (state.customText && state.customText.trim()) ? state.customText.trim() : state.quote;
 }
@@ -141,6 +161,7 @@ function render() {
   });
 
   if (state.showDate) drawDateStamp();
+  drawWatermark();
 }
 
 function buildTemplateGrid() {
