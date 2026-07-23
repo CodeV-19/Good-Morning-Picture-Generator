@@ -5,17 +5,26 @@ const API_KEY = process.env.PEXELS_API_KEY;
 const OUT_DIR = path.join('images', 'flowers');
 const COUNT = 20;
 const QUERY = 'flower';
-const MAX_PAGE = 50;
 const PER_PAGE = 80;
+const MAX_PAGE_CEILING = 25;
+
+async function searchPexels(page) {
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(QUERY)}&per_page=${PER_PAGE}&page=${page}&orientation=square`;
+  const res = await fetch(url, { headers: { Authorization: API_KEY } });
+  if (!res.ok) throw new Error(`Pexels API error: ${res.status} ${res.statusText}`);
+  return res.json();
+}
 
 async function main() {
   if (!API_KEY) throw new Error('Missing PEXELS_API_KEY environment variable');
 
-  const page = Math.floor(Math.random() * MAX_PAGE) + 1;
-  const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(QUERY)}&per_page=${PER_PAGE}&page=${page}&orientation=square`;
-  const res = await fetch(searchUrl, { headers: { Authorization: API_KEY } });
-  if (!res.ok) throw new Error(`Pexels API error: ${res.status} ${res.statusText}`);
-  const data = await res.json();
+  const firstPage = await searchPexels(1);
+  const totalResults = firstPage.total_results || 0;
+  if (totalResults === 0) throw new Error('Pexels returned no results for the query');
+
+  const maxPage = Math.min(MAX_PAGE_CEILING, Math.max(1, Math.floor(totalResults / PER_PAGE)));
+  const page = Math.floor(Math.random() * maxPage) + 1;
+  const data = page === 1 ? firstPage : await searchPexels(page);
   const photos = data.photos || [];
   if (photos.length === 0) throw new Error('Pexels returned no photos');
 
