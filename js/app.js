@@ -53,7 +53,7 @@ function fitText(measureCtx, text, maxWidth, maxHeight, fontFamily) {
   return { fontSize, lines, lineHeight };
 }
 
-function drawImageCover(img) {
+function drawImageCover(targetCtx, img) {
   const imgRatio = img.width / img.height;
   const canvasRatio = W / H;
   let sx, sy, sw, sh;
@@ -68,74 +68,74 @@ function drawImageCover(img) {
     sx = 0;
     sy = (img.height - sh) / 2;
   }
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-  const g = ctx.createLinearGradient(0, 0, 0, H);
+  targetCtx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  const g = targetCtx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, 'rgba(0,0,0,0.18)');
   g.addColorStop(0.5, 'rgba(0,0,0,0)');
   g.addColorStop(1, 'rgba(0,0,0,0.3)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  targetCtx.fillStyle = g;
+  targetCtx.fillRect(0, 0, W, H);
 }
 
-function drawDateStamp() {
+function drawDateStamp(targetCtx) {
   const now = new Date();
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
   const label = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
-  ctx.font = "700 30px 'Noto Sans TC', sans-serif";
-  const textW = ctx.measureText(label).width;
+  targetCtx.font = "700 30px 'Noto Sans TC', sans-serif";
+  const textW = targetCtx.measureText(label).width;
   const padX = 22;
   const boxW = textW + padX * 2;
   const boxH = 56;
   const x = W / 2 - boxW / 2;
   const y = 34;
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  roundRect(ctx, x, y, boxW, boxH, boxH / 2);
-  ctx.fill();
-  ctx.fillStyle = '#3a2e2a';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, W / 2, y + boxH / 2 + 2);
-  ctx.restore();
+  targetCtx.save();
+  targetCtx.fillStyle = 'rgba(255,255,255,0.88)';
+  roundRect(targetCtx, x, y, boxW, boxH, boxH / 2);
+  targetCtx.fill();
+  targetCtx.fillStyle = '#3a2e2a';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.fillText(label, W / 2, y + boxH / 2 + 2);
+  targetCtx.restore();
 }
 
-function drawWatermark() {
+function drawWatermark(targetCtx) {
   const label = 'goodmorning.onlineqrcode.app';
-  ctx.font = "600 22px 'Noto Sans TC', sans-serif";
-  const textW = ctx.measureText(label).width;
+  targetCtx.font = "600 22px 'Noto Sans TC', sans-serif";
+  const textW = targetCtx.measureText(label).width;
   const padX = 16;
   const boxW = textW + padX * 2;
   const boxH = 36;
   const x = W / 2 - boxW / 2;
   const y = H - boxH - 22;
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  roundRect(ctx, x, y, boxW, boxH, boxH / 2);
-  ctx.fill();
-  ctx.fillStyle = '#3a2e2a';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, W / 2, y + boxH / 2 + 1);
-  ctx.restore();
+  targetCtx.save();
+  targetCtx.fillStyle = 'rgba(255,255,255,0.75)';
+  roundRect(targetCtx, x, y, boxW, boxH, boxH / 2);
+  targetCtx.fill();
+  targetCtx.fillStyle = '#3a2e2a';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.fillText(label, W / 2, y + boxH / 2 + 1);
+  targetCtx.restore();
 }
 
 function currentText() {
   return (state.customText && state.customText.trim()) ? state.customText.trim() : state.quote;
 }
 
-function render() {
-  ctx.clearRect(0, 0, W, H);
+function renderTo(targetCtx, withWatermark) {
+  targetCtx.clearRect(0, 0, W, H);
   if (state.mode === 'upload' && state.photoImg) {
-    drawImageCover(state.photoImg);
+    drawImageCover(targetCtx, state.photoImg);
   } else {
     const tpl = TEMPLATES.find((t) => t.id === state.templateId) || TEMPLATES[0];
-    tpl.draw(ctx, W, H);
+    tpl.draw(targetCtx, W, H);
   }
 
   const text = currentText();
   const maxWidth = W * 0.82;
   const maxHeight = H * 0.5;
-  const { fontSize, lines, lineHeight } = fitText(ctx, text, maxWidth, maxHeight, state.font);
+  const { fontSize, lines, lineHeight } = fitText(targetCtx, text, maxWidth, maxHeight, state.font);
 
   const totalTextHeight = lines.length * lineHeight;
   let startY;
@@ -143,25 +143,37 @@ function render() {
   else if (state.position === 'bottom') startY = H * 0.88 - totalTextHeight + lineHeight * 0.5;
   else startY = H / 2 - totalTextHeight / 2 + lineHeight * 0.5;
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineJoin = 'round';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.lineJoin = 'round';
   lines.forEach((line, i) => {
     const y = startY + i * lineHeight;
-    ctx.font = `900 ${fontSize}px ${state.font}`;
-    ctx.lineWidth = fontSize * 0.16;
-    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-    ctx.strokeText(line, W / 2, y);
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = state.color;
-    ctx.fillText(line, W / 2, y);
-    ctx.shadowColor = 'transparent';
+    targetCtx.font = `900 ${fontSize}px ${state.font}`;
+    targetCtx.lineWidth = fontSize * 0.16;
+    targetCtx.strokeStyle = 'rgba(255,255,255,0.92)';
+    targetCtx.strokeText(line, W / 2, y);
+    targetCtx.shadowColor = 'rgba(0,0,0,0.25)';
+    targetCtx.shadowBlur = 8;
+    targetCtx.shadowOffsetY = 3;
+    targetCtx.fillStyle = state.color;
+    targetCtx.fillText(line, W / 2, y);
+    targetCtx.shadowColor = 'transparent';
   });
 
-  if (state.showDate) drawDateStamp();
-  drawWatermark();
+  if (state.showDate) drawDateStamp(targetCtx);
+  if (withWatermark) drawWatermark(targetCtx);
+}
+
+function render() {
+  renderTo(ctx, false);
+}
+
+function getExportCanvas() {
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = W;
+  exportCanvas.height = H;
+  renderTo(exportCanvas.getContext('2d'), true);
+  return exportCanvas;
 }
 
 function buildTemplateGrid() {
@@ -287,21 +299,25 @@ function wireControls() {
     reader.readAsDataURL(file);
   });
 
+  function downloadExportCanvas() {
+    const link = document.createElement('a');
+    link.download = '早安圖.png';
+    link.href = getExportCanvas().toDataURL('image/png');
+    link.click();
+  }
+
   document.getElementById('downloadBtn').addEventListener('click', () => {
     if (isInAppBrowser()) {
       showToast('LINE／FB 內建瀏覽器可能無法下載，請改用右上角「⋯」在瀏覽器中開啟');
     }
-    const link = document.createElement('a');
-    link.download = '早安圖.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    downloadExportCanvas();
   });
 
   document.getElementById('shareBtn').addEventListener('click', () => {
     if (isInAppBrowser()) {
       showToast('LINE／FB 內建瀏覽器可能無法分享，請改用右上角「⋯」在瀏覽器中開啟');
     }
-    canvas.toBlob(async (blob) => {
+    getExportCanvas().toBlob(async (blob) => {
       const file = new File([blob], '早安圖.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
@@ -309,14 +325,14 @@ function wireControls() {
         } catch (err) { /* user cancelled */ }
       } else {
         showToast('此瀏覽器不支援直接分享圖片，已為您下載，請從相簿分享');
-        document.getElementById('downloadBtn').click();
+        downloadExportCanvas();
       }
     }, 'image/png');
   });
 
   document.getElementById('lineBtn').addEventListener('click', () => {
     const homeUrl = buildPlainShareUrl();
-    canvas.toBlob(async (blob) => {
+    getExportCanvas().toBlob(async (blob) => {
       const file = new File([blob], '早安圖.png', { type: 'image/png' });
       const shareText = `早安！這是我用早安圖產生器做的 🌅\n也來做一張：${homeUrl}`;
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -326,7 +342,7 @@ function wireControls() {
         } catch (err) { return; /* user cancelled */ }
       }
       showToast('此瀏覽器不支援直接分享圖片，已為您下載，並開啟 LINE 分享連結');
-      document.getElementById('downloadBtn').click();
+      downloadExportCanvas();
       window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(homeUrl)}`, '_blank');
     }, 'image/png');
   });
