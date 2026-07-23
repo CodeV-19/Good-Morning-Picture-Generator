@@ -318,58 +318,81 @@ function wireControls() {
   });
 }
 
+const FONTS = [
+  "'Noto Sans TC', sans-serif",
+  "'Noto Serif TC', serif",
+  "'LXGW WenKai TC', serif",
+  "'Ma Shan Zheng', cursive",
+];
+
+function flattenQuotes() {
+  return QUOTE_GROUPS.flatMap((g) => g.items);
+}
+
 function encodeState() {
-  const s = { t: state.templateId, q: currentText(), f: state.font, c: state.color, p: state.position, d: state.showDate ? 1 : 0 };
-  const json = JSON.stringify(s);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
   const url = new URL(window.location.href);
   url.search = '';
-  url.searchParams.set('s', b64);
+  url.searchParams.set('t', state.templateId);
+  const fontIdx = FONTS.indexOf(state.font);
+  url.searchParams.set('f', fontIdx >= 0 ? fontIdx : 2);
+  const colorIdx = COLORS.indexOf(state.color);
+  url.searchParams.set('c', colorIdx >= 0 ? colorIdx : 0);
+  url.searchParams.set('p', state.position[0]);
+  url.searchParams.set('d', state.showDate ? '1' : '0');
+
+  const text = currentText();
+  const quoteIdx = flattenQuotes().indexOf(text);
+  if (quoteIdx >= 0 && !state.customText) {
+    url.searchParams.set('qi', quoteIdx);
+  } else {
+    url.searchParams.set('qt', text);
+  }
   url.searchParams.set('openExternalBrowser', '1');
   return url.toString();
 }
 
 function decodeStateFromURL() {
   const params = new URLSearchParams(window.location.search);
-  const b64 = params.get('s');
-  if (!b64) return null;
-  try {
-    const json = decodeURIComponent(escape(atob(b64)));
-    return JSON.parse(json);
-  } catch (err) {
-    return null;
-  }
+  if (!params.has('t')) return null;
+  const positionMap = { t: 'top', m: 'middle', b: 'bottom' };
+  return {
+    t: params.get('t'),
+    f: FONTS[Number(params.get('f'))] || FONTS[2],
+    c: COLORS[Number(params.get('c'))] || COLORS[0],
+    p: positionMap[params.get('p')] || 'middle',
+    d: params.get('d') === '1',
+    qi: params.has('qi') ? Number(params.get('qi')) : null,
+    qt: params.get('qt') || '',
+  };
 }
 
 function applySharedState(shared) {
   if (TEMPLATES.some((t) => t.id === shared.t)) state.templateId = shared.t;
   state.mode = 'template';
-  if (shared.q) {
-    state.customText = shared.q;
-    document.getElementById('customText').value = shared.q;
+
+  const presetText = shared.qi !== null ? flattenQuotes()[shared.qi] : undefined;
+  if (presetText !== undefined) {
+    state.quote = presetText;
+    state.customText = '';
+    document.getElementById('quoteSelect').value = presetText;
+  } else if (shared.qt) {
+    state.customText = shared.qt;
+    document.getElementById('customText').value = shared.qt;
   }
-  if (shared.f) {
-    state.font = shared.f;
-    document.getElementById('fontSelect').value = shared.f;
-  }
-  if (shared.c) {
-    state.color = shared.c;
-    document.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('active', s.style.background === hexToRgbStr(shared.c)));
-  }
-  if (shared.p) {
-    state.position = shared.p;
-    document.querySelectorAll('#posToggle button').forEach((b) => b.classList.toggle('active', b.dataset.pos === shared.p));
-  }
-  state.showDate = !!shared.d;
+
+  state.font = shared.f;
+  document.getElementById('fontSelect').value = shared.f;
+
+  state.color = shared.c;
+  const colorIdx = COLORS.indexOf(shared.c);
+  document.querySelectorAll('.swatch').forEach((s, i) => s.classList.toggle('active', i === colorIdx));
+
+  state.position = shared.p;
+  document.querySelectorAll('#posToggle button').forEach((b) => b.classList.toggle('active', b.dataset.pos === shared.p));
+
+  state.showDate = shared.d;
   document.getElementById('showDate').checked = state.showDate;
   selectTemplateCard(state.templateId);
-}
-
-function hexToRgbStr(hex) {
-  const v = hex.replace('#', '');
-  const num = parseInt(v, 16);
-  const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-  return `rgb(${r}, ${g}, ${b})`;
 }
 
 function updateShareAvailability() {
