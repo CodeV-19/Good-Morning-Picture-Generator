@@ -331,20 +331,8 @@ function wireControls() {
   });
 
   document.getElementById('lineBtn').addEventListener('click', () => {
-    const homeUrl = buildPlainShareUrl();
-    getExportCanvas().toBlob(async (blob) => {
-      const file = new File([blob], '早安圖.png', { type: 'image/png' });
-      const shareText = `早安！這是我用早安圖產生器做的 🌅\n也來做一張：${homeUrl}`;
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: '早安圖', text: shareText });
-          return;
-        } catch (err) { return; /* user cancelled */ }
-      }
-      showToast('此瀏覽器不支援直接分享圖片，已為您下載，並開啟 LINE 分享連結');
-      downloadExportCanvas();
-      window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(homeUrl)}`, '_blank');
-    }, 'image/png');
+    const url = buildPlainShareUrl();
+    window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`, '_blank');
   });
 
   document.getElementById('shareAppBtn').addEventListener('click', async () => {
