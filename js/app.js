@@ -53,9 +53,9 @@ function fitText(measureCtx, text, maxWidth, maxHeight, fontFamily) {
   return { fontSize, lines, lineHeight };
 }
 
-function drawImageCover(targetCtx, img) {
+function drawImageCover(targetCtx, img, w = W, h = H) {
   const imgRatio = img.width / img.height;
-  const canvasRatio = W / H;
+  const canvasRatio = w / h;
   let sx, sy, sw, sh;
   if (imgRatio > canvasRatio) {
     sh = img.height;
@@ -68,13 +68,13 @@ function drawImageCover(targetCtx, img) {
     sx = 0;
     sy = (img.height - sh) / 2;
   }
-  targetCtx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-  const g = targetCtx.createLinearGradient(0, 0, 0, H);
+  targetCtx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  const g = targetCtx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, 'rgba(0,0,0,0.18)');
   g.addColorStop(0.5, 'rgba(0,0,0,0)');
   g.addColorStop(1, 'rgba(0,0,0,0.3)');
   targetCtx.fillStyle = g;
-  targetCtx.fillRect(0, 0, W, H);
+  targetCtx.fillRect(0, 0, w, h);
 }
 
 function drawDateStamp(targetCtx) {
@@ -128,7 +128,7 @@ function renderTo(targetCtx, withWatermark) {
   if (state.mode === 'upload' && state.photoImg) {
     drawImageCover(targetCtx, state.photoImg);
   } else {
-    const tpl = TEMPLATES.find((t) => t.id === state.templateId) || TEMPLATES[0];
+    const tpl = activeTemplates.find((t) => t.id === state.templateId) || activeTemplates[0];
     tpl.draw(targetCtx, W, H);
   }
 
@@ -176,9 +176,43 @@ function getExportCanvas() {
   return exportCanvas;
 }
 
+let activeTemplates = TEMPLATES;
+
+async function loadPhotoTemplates() {
+  try {
+    const res = await fetch('images/flowers/manifest.json', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const manifest = await res.json();
+    if (!Array.isArray(manifest) || manifest.length === 0) return null;
+
+    const picked = manifest.sort(() => Math.random() - 0.5).slice(0, 9);
+    const loaded = await Promise.all(
+      picked.map((entry) => new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ entry, img });
+        img.onerror = () => resolve(null);
+        img.src = `images/flowers/${entry.file}`;
+      })),
+    );
+
+    const templates = loaded
+      .filter(Boolean)
+      .map(({ entry, img }, i) => ({
+        id: `flower-${i}`,
+        name: `花卉 ${i + 1}`,
+        draw(targetCtx, w, h) { drawImageCover(targetCtx, img, w, h); },
+      }));
+
+    return templates.length > 0 ? templates : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 function buildTemplateGrid() {
   const grid = document.getElementById('templateGrid');
-  TEMPLATES.forEach((tpl, idx) => {
+  grid.innerHTML = '';
+  activeTemplates.forEach((tpl, idx) => {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'template-card' + (idx === 0 ? ' active' : '');
@@ -386,7 +420,6 @@ async function init() {
   initInAppBanner();
   buildQuoteSelect();
   buildColorSwatches();
-  buildTemplateGrid();
   wireControls();
 
   try {
@@ -397,6 +430,13 @@ async function init() {
       document.fonts.load("900 80px 'Ma Shan Zheng'"),
     ]);
   } catch (err) { /* fall back to system font if webfont fails */ }
+
+  const photoTemplates = await loadPhotoTemplates();
+  if (photoTemplates) {
+    activeTemplates = photoTemplates;
+    state.templateId = activeTemplates[0].id;
+  }
+  buildTemplateGrid();
 
   render();
 }

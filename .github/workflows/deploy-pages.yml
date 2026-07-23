@@ -31,6 +31,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html css js CNAME _site/
+          if [ -d images ]; then cp -r images _site/; fi
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
