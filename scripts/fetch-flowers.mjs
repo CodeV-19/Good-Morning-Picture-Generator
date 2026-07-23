@@ -9,7 +9,7 @@ const PER_PAGE = 80;
 const MAX_PAGE_CEILING = 25;
 
 async function searchPexels(page) {
-  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(QUERY)}&per_page=${PER_PAGE}&page=${page}&orientation=square`;
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(QUERY)}&per_page=${PER_PAGE}&page=${page}`;
   const res = await fetch(url, { headers: { Authorization: API_KEY } });
   if (!res.ok) throw new Error(`Pexels API error: ${res.status} ${res.statusText}`);
   return res.json();
@@ -20,13 +20,15 @@ async function main() {
 
   const firstPage = await searchPexels(1);
   const totalResults = firstPage.total_results || 0;
-  if (totalResults === 0) throw new Error('Pexels returned no results for the query');
+  if (totalResults === 0 || !(firstPage.photos || []).length) {
+    throw new Error('Pexels returned no results for the query');
+  }
 
   const maxPage = Math.min(MAX_PAGE_CEILING, Math.max(1, Math.floor(totalResults / PER_PAGE)));
   const page = Math.floor(Math.random() * maxPage) + 1;
   const data = page === 1 ? firstPage : await searchPexels(page);
-  const photos = data.photos || [];
-  if (photos.length === 0) throw new Error('Pexels returned no photos');
+  // Fall back to the (known-good) first page if the randomly picked page happens to be empty.
+  const photos = (data.photos && data.photos.length > 0) ? data.photos : firstPage.photos;
 
   const picked = photos.sort(() => Math.random() - 0.5).slice(0, COUNT);
 
