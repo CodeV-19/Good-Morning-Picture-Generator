@@ -506,9 +506,8 @@ function wireSubmitPanel() {
 
   submitBtn.addEventListener('click', async () => {
     if (!resizedBlob) { setSubmitStatus('請先選擇一張照片', 'error'); return; }
-    if (!nameInput.value.trim()) { setSubmitStatus('請填寫顯示名稱', 'error'); return; }
-    if (!emailInput.value.trim() || !emailInput.checkValidity()) {
-      setSubmitStatus('請填寫正確的聯絡 Email', 'error');
+    if (!emailInput.checkValidity()) {
+      setSubmitStatus('Email 格式不正確，麻煩檢查一下（不填可留空）', 'error');
       return;
     }
     if (!agreeInput.checked) { setSubmitStatus('請先勾選同意投稿條款', 'error'); return; }
