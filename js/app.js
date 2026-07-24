@@ -411,6 +411,148 @@ function wireControls() {
   });
 }
 
+const UPLOAD_ENDPOINT = '/api/upload-photo';
+const GOOGLE_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLScePLdSBb3J38GWKHO-inl05wYYh-db0fdjrA-ZALGOwWJOpA/formResponse';
+const FORM_ENTRY = {
+  name: 'entry.1523346825',
+  platform: 'entry.168244351',
+  handle: 'entry.1447683410',
+  email: 'entry.1270478801',
+  agree: 'entry.1564492846',
+  photoId: 'entry.1329828469',
+};
+const AGREE_VALUE = '我同意';
+const SUBMIT_MAX_DIMENSION = 1600;
+const SUBMIT_JPEG_QUALITY = 0.85;
+
+const UPLOAD_ERROR_MESSAGES = {
+  file_too_large: '照片檔案太大，請換一張較小的照片',
+  unsupported_file_type: '不支援這種檔案格式，請上傳 JPG／PNG／WebP 圖片',
+  missing_photo: '請先選擇一張照片',
+  storage_cap_reached: '目前投稿空間已滿，請稍後再試',
+  invalid_form_data: '上傳失敗，請重新選擇照片後再試一次',
+};
+
+function resizeImageForSubmission(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > SUBMIT_MAX_DIMENSION || height > SUBMIT_MAX_DIMENSION) {
+        if (width >= height) {
+          height = Math.round(height * (SUBMIT_MAX_DIMENSION / width));
+          width = SUBMIT_MAX_DIMENSION;
+        } else {
+          width = Math.round(width * (SUBMIT_MAX_DIMENSION / height));
+          height = SUBMIT_MAX_DIMENSION;
+        }
+      }
+      const c = document.createElement('canvas');
+      c.width = width;
+      c.height = height;
+      c.getContext('2d').drawImage(img, 0, 0, width, height);
+      c.toBlob((blob) => {
+        URL.revokeObjectURL(objectUrl);
+        if (blob) resolve(blob); else reject(new Error('encode failed'));
+      }, 'image/jpeg', SUBMIT_JPEG_QUALITY);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('decode failed'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function setSubmitStatus(message, kind) {
+  const el = document.getElementById('submitStatus');
+  el.textContent = message;
+  el.className = 'submit-status' + (kind ? ` ${kind}` : '');
+}
+
+function wireSubmitPanel() {
+  const photoInput = document.getElementById('submitPhotoInput');
+  const preview = document.getElementById('submitPreview');
+  const previewImg = document.getElementById('submitPreviewImg');
+  const submitBtn = document.getElementById('submitPhotoBtn');
+  const nameInput = document.getElementById('submitName');
+  const platformSelect = document.getElementById('submitPlatform');
+  const handleInput = document.getElementById('submitHandle');
+  const emailInput = document.getElementById('submitEmail');
+  const agreeInput = document.getElementById('submitAgree');
+
+  let resizedBlob = null;
+
+  photoInput.addEventListener('change', async () => {
+    const file = photoInput.files[0];
+    resizedBlob = null;
+    if (!file) {
+      preview.hidden = true;
+      return;
+    }
+    setSubmitStatus('處理照片中…');
+    try {
+      resizedBlob = await resizeImageForSubmission(file);
+      previewImg.src = URL.createObjectURL(resizedBlob);
+      preview.hidden = false;
+      setSubmitStatus('');
+    } catch (err) {
+      resizedBlob = null;
+      preview.hidden = true;
+      setSubmitStatus('無法讀取這張照片，請換一張', 'error');
+    }
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    if (!resizedBlob) { setSubmitStatus('請先選擇一張照片', 'error'); return; }
+    if (!nameInput.value.trim()) { setSubmitStatus('請填寫顯示名稱', 'error'); return; }
+    if (!emailInput.value.trim() || !emailInput.checkValidity()) {
+      setSubmitStatus('請填寫正確的聯絡 Email', 'error');
+      return;
+    }
+    if (!agreeInput.checked) { setSubmitStatus('請先勾選同意投稿條款', 'error'); return; }
+
+    submitBtn.disabled = true;
+    setSubmitStatus('上傳中…');
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', resizedBlob, 'photo.jpg');
+      const uploadRes = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok) {
+        setSubmitStatus(UPLOAD_ERROR_MESSAGES[uploadData.error] || '上傳失敗，請稍後再試', 'error');
+        submitBtn.disabled = false;
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.set(FORM_ENTRY.name, nameInput.value.trim());
+      params.set(FORM_ENTRY.platform, platformSelect.value);
+      params.set(FORM_ENTRY.handle, handleInput.value.trim());
+      params.set(FORM_ENTRY.email, emailInput.value.trim());
+      params.set(FORM_ENTRY.agree, AGREE_VALUE);
+      params.set(FORM_ENTRY.photoId, uploadData.id);
+
+      await fetch(GOOGLE_FORM_ACTION, { method: 'POST', mode: 'no-cors', body: params });
+
+      setSubmitStatus('已收到你的投稿，感謝分享！審核通過後就會出現在範本清單中 🌸', 'success');
+      photoInput.value = '';
+      resizedBlob = null;
+      preview.hidden = true;
+      nameInput.value = '';
+      handleInput.value = '';
+      emailInput.value = '';
+      agreeInput.checked = false;
+    } catch (err) {
+      setSubmitStatus('網路連線有問題，請稍後再試', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
 function buildPlainShareUrl() {
   const url = new URL(window.location.href);
   url.search = '';
@@ -446,6 +588,7 @@ async function init() {
   buildQuoteSelect();
   buildColorSwatches();
   wireControls();
+  wireSubmitPanel();
 
   try {
     await Promise.all([

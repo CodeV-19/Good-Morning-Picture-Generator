@@ -82,6 +82,53 @@
       </div>
     </div>
 
+    <details class="panel submit-panel">
+      <summary>📤 想把你的照片分享給大家當背景嗎？</summary>
+      <div class="submit-body">
+        <p class="hint">照片會先經過審核，審核通過後才會出現在範本清單，並非即時公開。送出前請詳閱<a href="terms.html" target="_blank" rel="noopener">投稿條款與隱私權說明</a>。</p>
+
+        <label class="upload-box" for="submitPhotoInput">
+          <span>📷 選擇要投稿的照片</span>
+          <input type="file" id="submitPhotoInput" accept="image/*">
+        </label>
+        <div class="submit-preview" id="submitPreview" hidden>
+          <img id="submitPreviewImg" alt="投稿照片預覽">
+        </div>
+
+        <div class="field">
+          <label for="submitName">顯示名稱</label>
+          <input type="text" id="submitName" maxlength="30" placeholder="本名、暱稱或社群帳號">
+        </div>
+
+        <div class="field">
+          <label for="submitPlatform">顯示方式</label>
+          <select id="submitPlatform">
+            <option value="純文字">純文字</option>
+            <option value="Instagram">Instagram</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Threads">Threads</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="submitHandle">社群帳號或連結（選填）</label>
+          <input type="text" id="submitHandle" maxlength="100" placeholder="例如 @yourname">
+        </div>
+
+        <div class="field">
+          <label for="submitEmail">聯絡 Email</label>
+          <input type="email" id="submitEmail" maxlength="100" placeholder="審核相關聯繫用，不會公開顯示">
+        </div>
+
+        <div class="field checkbox-field">
+          <label><input type="checkbox" id="submitAgree"> 我已閱讀並同意<a href="terms.html" target="_blank" rel="noopener">投稿條款與隱私權說明</a></label>
+        </div>
+
+        <button id="submitPhotoBtn" class="btn btn-primary" type="button">送出投稿</button>
+        <p class="submit-status" id="submitStatus"></p>
+      </div>
+    </details>
+
   </section>
 
   <section class="preview-area">
