@@ -60,7 +60,7 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         run: |
           mkdir -p _site
-          cp -r index.html css js CNAME images _site/
+          cp -r index.html terms.html css js CNAME images _site/
 
       - name: Upload artifact
         if: steps.commit.outputs.changed == 'true'
