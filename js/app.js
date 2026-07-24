@@ -119,17 +119,38 @@ function drawWatermark(targetCtx) {
   targetCtx.restore();
 }
 
+function drawPhotoCredit(targetCtx, credit) {
+  const label = `📷 ${credit}`;
+  targetCtx.font = "600 20px 'Noto Sans TC', sans-serif";
+  const textW = targetCtx.measureText(label).width;
+  const padX = 14;
+  const boxH = 32;
+  const boxW = textW + padX * 2;
+  const x = W - boxW - 20;
+  const y = H - boxH - 22;
+  targetCtx.save();
+  targetCtx.fillStyle = 'rgba(0,0,0,0.45)';
+  roundRect(targetCtx, x, y, boxW, boxH, boxH / 2);
+  targetCtx.fill();
+  targetCtx.fillStyle = '#ffffff';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.fillText(label, x + boxW / 2, y + boxH / 2 + 1);
+  targetCtx.restore();
+}
+
 function currentText() {
   return (state.customText && state.customText.trim()) ? state.customText.trim() : state.quote;
 }
 
 function renderTo(targetCtx, withWatermark) {
   targetCtx.clearRect(0, 0, W, H);
+  let activeTpl = null;
   if (state.mode === 'upload' && state.photoImg) {
     drawImageCover(targetCtx, state.photoImg);
   } else {
-    const tpl = activeTemplates.find((t) => t.id === state.templateId) || activeTemplates[0];
-    tpl.draw(targetCtx, W, H);
+    activeTpl = activeTemplates.find((t) => t.id === state.templateId) || activeTemplates[0];
+    activeTpl.draw(targetCtx, W, H);
   }
 
   const text = currentText();
@@ -161,7 +182,10 @@ function renderTo(targetCtx, withWatermark) {
   });
 
   if (state.showDate) drawDateStamp(targetCtx);
-  if (withWatermark) drawWatermark(targetCtx);
+  if (withWatermark) {
+    drawWatermark(targetCtx);
+    if (activeTpl && activeTpl.credit) drawPhotoCredit(targetCtx, activeTpl.credit);
+  }
 }
 
 function render() {
@@ -200,6 +224,7 @@ async function loadPhotoTemplates() {
       .map(({ entry, img }, i) => ({
         id: `flower-${i}`,
         name: `花卉 ${i + 1}`,
+        credit: entry.photographer || null,
         draw(targetCtx, w, h) { drawImageCover(targetCtx, img, w, h); },
       }));
 
